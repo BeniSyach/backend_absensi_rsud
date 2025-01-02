@@ -23,9 +23,6 @@ Route::middleware([JWTMiddleware::class])->group(function () {
     Route::post('refresh', [AuthController::class, 'refresh']);
     Route::post('logout', [AuthController::class, 'logout']);
 
-    // Data User
-
-
     // Data Absensi
 
 
@@ -37,8 +34,8 @@ Route::middleware([JWTMiddleware::class])->group(function () {
 
     // Dashboard
 
-    // Master Data
 
+    // Master Data
     //  --- DIVISI ---
     Route::apiResource('divisi', DivisiController::class);
     // --- LEVEL AKSES ---
@@ -49,6 +46,10 @@ Route::middleware([JWTMiddleware::class])->group(function () {
     Route::apiResource('status-pegawai', StatusPegawaiController::class);
     // --- JABATAN ---
     Route::apiResource('jabatan', JabatanController::class);
-    // --- USER ---
+    // --- DATA USER ---
     Route::apiResource('users', UserController::class);
+    Route::put('reset-password', [UserController::class, 'resetPassword']);
+    Route::post('upload-photo', [UserController::class, 'uploadPhoto']);
+    // --- SHIFT KERJA ---
+
 });

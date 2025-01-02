@@ -23,6 +23,7 @@ return new class extends Migration
             $table->unsignedBigInteger('id_gender')->nullable();
             $table->unsignedBigInteger('id_status')->nullable();
             $table->string('device_token')->nullable();
+            $table->string('photo')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

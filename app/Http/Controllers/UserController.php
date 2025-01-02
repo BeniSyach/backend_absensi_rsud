@@ -3,12 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use App\Models\Divisi;
-use App\Models\LevelAkses;
-use App\Models\Gender;
-use App\Models\StatusPegawai;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 class UserController extends Controller
 {
@@ -128,5 +126,77 @@ class UserController extends Controller
         $user->delete();
 
         return response()->json(['message' => 'User deleted successfully'], 200);
+    }
+
+    public function resetPassword(Request $request)
+    {
+        try {
+            // Validasi input
+            $validatedData = $request->validate([
+                'old_password' => 'required|string|min:6',
+                'new_password' => 'required|string|min:6|confirmed',
+            ]);
+
+            // Mendapatkan pengguna yang sedang login
+            $user = Auth::user();
+
+            if (!$user) {
+                return response()->json(['error' => 'User not found'], 404);
+            }
+
+            // Cek apakah password lama sesuai
+            if (!Hash::check($validatedData['old_password'], $user->password)) {
+                throw ValidationException::withMessages([
+                    'old_password' => ['Password lama tidak sesuai'],
+                ]);
+            }
+
+            // Update password dengan password baru
+            $user->password = Hash::make($validatedData['new_password']);
+            $user->save();
+
+            // Mengembalikan respons sukses
+            return response()->json(['message' => 'Password berhasil direset'], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to reset password',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function uploadPhoto(Request $request)
+    {
+        try {
+            // Validasi input foto
+            $validatedData = $request->validate([
+                'photo' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048', // Validasi file gambar
+            ]);
+
+            // Mendapatkan pengguna yang sedang login
+            $user = Auth::user();
+
+            if (!$user) {
+                return response()->json(['error' => 'User not found'], 404);
+            }
+
+            // Menyimpan foto hanya jika validasi berhasil
+            $photoPath = $request->file('photo')->store('photos', 'public');
+
+            // Update kolom photo di pengguna
+            $user->photo = $photoPath;
+            $user->save(); // Simpan perubahan foto
+
+            // Mengembalikan response sukses dengan URL foto
+            return response()->json([
+                'message' => 'Photo uploaded successfully',
+                'photo_url' => asset('storage/' . $photoPath)
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to upload photo',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 }

@@ -77,7 +77,7 @@ class AuthController extends Controller
         try {
             // Cek apakah kredensial valid
             if (! $token = JWTAuth::attempt($credentials)) {
-                return response()->json(['error' => 'Unauthorized'], 401);
+                return response()->json(['error' => 'Username / Password Salah'], 401);
             }
         } catch (JWTException $e) {
             // Jika terjadi kesalahan dalam pembuatan token
