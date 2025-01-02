@@ -17,6 +17,12 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('nik', 16)->unique();
+            $table->unsignedBigInteger('id_divisi')->nullable();
+            $table->unsignedBigInteger('id_level_akses')->nullable();
+            $table->unsignedBigInteger('id_gender')->nullable();
+            $table->unsignedBigInteger('id_status')->nullable();
+            $table->string('device_token')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

@@ -22,6 +22,12 @@ class User extends Authenticatable implements JWTSubject
         'name',
         'email',
         'password',
+        'nik',
+        'id_divisi',
+        'id_level_akses',
+        'id_gender',
+        'id_status',
+        'device_token',
     ];
 
     /**
@@ -32,6 +38,7 @@ class User extends Authenticatable implements JWTSubject
     protected $hidden = [
         'password',
         'remember_token',
+        'device_token'
     ];
 
     /**
@@ -45,6 +52,26 @@ class User extends Authenticatable implements JWTSubject
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function divisi()
+    {
+        return $this->belongsTo(Divisi::class, 'id_divisi');
+    }
+
+    public function levelAkses()
+    {
+        return $this->belongsTo(LevelAkses::class, 'id_level_akses');
+    }
+
+    public function gender()
+    {
+        return $this->belongsTo(Gender::class, 'id_gender');
+    }
+
+    public function statusPegawai()
+    {
+        return $this->belongsTo(StatusPegawai::class, 'id_status');
     }
 
     public function getJWTIdentifier()

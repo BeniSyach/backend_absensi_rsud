@@ -13,26 +13,47 @@ class AuthController extends Controller
 {
     public function register(Request $request)
     {
-        // Validasi input dari request
-        $validatedData = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:6',
-        ]);
-
         try {
+            // Validasi input dari request
+            $validatedData = $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|string|email|max:255|unique:users',
+                'password' => 'required|string|min:6',
+                'nik' => 'required|digits:16',
+                'id_divisi' => 'required|exists:divisi,id',
+                'id_level_akses' => 'required|exists:level_akses,id',
+                'id_gender' => 'required|exists:gender,id',
+                'id_status' => 'required|exists:status_pegawai,id',
+                'device_token' => 'required|string',
+            ]);
+
             // Membuat pengguna baru
             $user = User::create([
                 'name' => $validatedData['name'],
                 'email' => $validatedData['email'],
                 'password' => Hash::make($validatedData['password']),
+                'nik' => $validatedData['nik'],
+                'id_divisi' => $validatedData['id_divisi'],
+                'id_level_akses' => $validatedData['id_level_akses'],
+                'id_gender' => $validatedData['id_gender'],
+                'id_status' => $validatedData['id_status'],
+                'device_token' => $validatedData['device_token'],
             ]);
 
             // Menghasilkan token JWT untuk pengguna
             $token = JWTAuth::fromUser($user);
 
             // Mengembalikan response sukses dengan token
-            return response()->json(['token' => $token], 201);
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Berhasil Daftar'
+            ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Menangkap dan mengembalikan error validasi
+            return response()->json([
+                'error' => 'Validation failed',
+                'messages' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             // Menangani kesalahan umum (misalnya database error)
             return response()->json([
@@ -47,6 +68,7 @@ class AuthController extends Controller
             ], 500);
         }
     }
+
 
     public function login(Request $request)
     {
