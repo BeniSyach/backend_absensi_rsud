@@ -18,12 +18,15 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->string('nik', 16)->unique();
+            $table->string('nomor_hp', 15)->unique();
+            $table->string('alamat')->nullable();
             $table->unsignedBigInteger('id_divisi')->nullable();
             $table->unsignedBigInteger('id_level_akses')->nullable();
             $table->unsignedBigInteger('id_gender')->nullable();
             $table->unsignedBigInteger('id_status')->nullable();
-            $table->string('device_token')->nullable();
             $table->string('photo')->nullable();
+            $table->string('device_token')->nullable();
+            $table->string('refresh_token')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

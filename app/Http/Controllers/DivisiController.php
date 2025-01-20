@@ -33,7 +33,7 @@ class DivisiController extends Controller
             $validated = $request->validate([
                 'nama_divisi' => 'required|string|max:255',
                 'id_atasan' => 'nullable|exists:users,id',
-                'id_jabatan' => 'required|exists:jabatan,id',
+                'id_jabatan' => 'nullable|exists:jabatan,id',
             ]);
 
             // Jika validasi berhasil, simpan data ke database
