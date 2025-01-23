@@ -49,6 +49,7 @@ Route::middleware([JWTMiddleware::class])->group(function () {
     Route::get('/spt/user/{user_id}', [SPTController::class, 'getSptByUser']);
     Route::get('/spt/diterima-sdm/{id}', [SPTController::class, 'setStatusDiterima']);
     Route::get('/spt/ditolak-sdm/{id}', [SPTController::class, 'setStatusDitolak']);
+    
     // Dashboard
     
 

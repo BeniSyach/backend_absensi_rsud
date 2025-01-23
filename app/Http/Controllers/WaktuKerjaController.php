@@ -12,7 +12,7 @@ class WaktuKerjaController extends Controller
      */
     public function index()
     {
-        $waktuKerjas = WaktuKerja::with(['hari', 'shift'])->get();
+        $waktuKerjas = WaktuKerja::with(['hari', 'shift', 'opd'])->get();
         return response()->json($waktuKerjas);
     }
 
@@ -35,6 +35,7 @@ class WaktuKerjaController extends Controller
                 'shift_id' => 'required|exists:shifts,id',
                 'jam_mulai' => 'required|date_format:H:i',
                 'jam_selesai' => 'required|date_format:H:i|after:jam_mulai',
+                'opd_id' => 'required|string|exists:locations,id'
             ]);
 
             $waktuKerja = WaktuKerja::create($validated);
@@ -86,6 +87,7 @@ class WaktuKerjaController extends Controller
                 'shift_id' => 'required|exists:shifts,id',
                 'jam_mulai' => 'required|date_format:H:i',
                 'jam_selesai' => 'required|date_format:H:i|after:jam_mulai',
+                'opd_id' => 'required|string|exists:locations,id'
             ]);
 
             $waktu_kerja->update($validated);

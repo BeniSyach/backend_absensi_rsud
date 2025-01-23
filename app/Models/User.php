@@ -30,6 +30,7 @@ class User extends Authenticatable implements JWTSubject
         'id_gender',
         'id_status',
         'device_token',
+        'opd_id'
     ];
 
     /**
@@ -74,6 +75,11 @@ class User extends Authenticatable implements JWTSubject
     public function statusPegawai()
     {
         return $this->belongsTo(StatusPegawai::class, 'id_status');
+    }
+
+    public function opd()
+    {
+        return $this->belongsTo(Location::class, 'opd_id');
     }
 
     public function getJWTIdentifier()

@@ -27,7 +27,8 @@ class AuthController extends Controller
                 'id_level_akses' => 'required|exists:level_akses,id',
                 'id_gender' => 'required|exists:gender,id',
                 'id_status' => 'required|exists:status_pegawai,id',
-                'device_token' => 'required|string',
+                'device_token' => 'nullable|string',
+                'opd_id' => 'required|string|exists:locations,id'
             ]);
 
             // Membuat pengguna baru
@@ -43,6 +44,7 @@ class AuthController extends Controller
                 'id_gender' => $validatedData['id_gender'],
                 'id_status' => $validatedData['id_status'],
                 'device_token' => $validatedData['device_token'],
+                'opd_id' => $validatedData['opd_id'],
             ]);
 
             // Menghasilkan token JWT untuk pengguna

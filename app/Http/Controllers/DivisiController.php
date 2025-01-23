@@ -12,7 +12,7 @@ class DivisiController extends Controller
      */
     public function index()
     {
-        return response()->json(Divisi::with('atasan')->get(), 200);
+        return response()->json(Divisi::with(['atasan', 'jabatan', 'opd'])->get(), 200);
     }
 
     /**
@@ -34,6 +34,7 @@ class DivisiController extends Controller
                 'nama_divisi' => 'required|string|max:255',
                 'id_atasan' => 'nullable|exists:users,id',
                 'id_jabatan' => 'nullable|exists:jabatan,id',
+                'opd_id' => 'required|string|exists:locations,id'
             ]);
 
             // Jika validasi berhasil, simpan data ke database
@@ -53,7 +54,7 @@ class DivisiController extends Controller
      */
     public function show(string $id)
     {
-        $divisi = Divisi::with('atasan')->find($id);
+        $divisi = Divisi::with(['atasan', 'jabatan', 'opd'])->find($id);
 
         if (!$divisi) {
             return response()->json(['error' => 'Divisi not found'], 404);
@@ -86,6 +87,7 @@ class DivisiController extends Controller
                 'nama_divisi' => 'required|string|max:255',
                 'id_atasan' => 'nullable|exists:users,id',
                 'id_jabatan' => 'required|exists:jabatan,id',
+                'opd_id' => 'required|string|exists:locations,id'
             ]);
 
             $divisi->update($validated);

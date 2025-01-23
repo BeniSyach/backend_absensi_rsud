@@ -12,8 +12,7 @@ class ShiftController extends Controller
      */
     public function index()
     {
-        $shifts = Shift::all();
-        return response()->json($shifts);
+        return response()->json(Shift::with('opd')->get(), 200);
     }
 
     /**
@@ -31,7 +30,8 @@ class ShiftController extends Controller
     {
         try {
             $validated = $request->validate([
-                'nama_shift' => 'required|string|max:255'
+                'nama_shift' => 'required|string|max:255',
+                'opd_id' => 'required|string|exists:locations,id'
             ]);
 
             $shift = Shift::create($validated);
@@ -49,7 +49,7 @@ class ShiftController extends Controller
      */
     public function show(string $id)
     {
-        $Shift = Shift::find($id);
+        $Shift = Shift::with('opd')->find($id);
 
         if (!$Shift) {
             return response()->json(['error' => 'Shift not found'], 404);
@@ -80,6 +80,7 @@ class ShiftController extends Controller
 
             $validated = $request->validate([
                 'nama_shift' => 'required|string|max:255',
+                'opd_id' => 'required|string|exists:locations,id'
             ]);
 
             $Shift->update($validated);

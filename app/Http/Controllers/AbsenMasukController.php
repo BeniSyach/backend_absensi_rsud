@@ -52,7 +52,11 @@ class AbsenMasukController extends Controller
             $search = $request->input('search');
     
             // Build query
-            $query = AbsenMasuk::with(['user']);
+            $query = AbsenMasuk::with(['user.divisi', 'absenPulang' => function($query) {
+                $query->select('*')
+                  ->latest()
+                  ->take(1);
+            }]);
     
             // Apply search if provided
             if ($search) {
@@ -69,6 +73,16 @@ class AbsenMasukController extends Controller
     
             // Get paginated results
             $absen_masuk = $query->paginate($limit);
+
+            $transformed_data = $absen_masuk->through(function ($item) {
+                // Convert absenPulang from array to object by taking first item
+                if ($item->absenPulang->count() > 0) {
+                    $item->absenPulang = $item->absenPulang->first();
+                } else {
+                    $item->absenPulang = null;
+                }
+                return $item;
+            });
     
             // Check if data exists
             if ($absen_masuk->isEmpty()) {
@@ -86,7 +100,7 @@ class AbsenMasukController extends Controller
     
             return response()->json([
                 'status' => 'success',
-                'data' => $absen_masuk
+                'data' => $transformed_data
             ]);
     
         } catch (\Exception $e) {

@@ -11,7 +11,7 @@ class WaktuKerja extends Model
 
     protected $table = 'waktu_kerjas';
 
-    protected $fillable = ['hari_id', 'shift_id', 'jam_mulai', 'jam_selesai'];
+    protected $fillable = ['hari_id', 'shift_id', 'jam_mulai', 'jam_selesai', 'opd_id'];
 
     public function hari()
     {
@@ -21,5 +21,10 @@ class WaktuKerja extends Model
     public function shift()
     {
         return $this->belongsTo(Shift::class);
+    }
+
+    public function opd()
+    {
+        return $this->belongsTo(Location::class, 'opd_id');
     }
 }

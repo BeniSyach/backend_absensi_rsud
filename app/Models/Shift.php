@@ -11,5 +11,10 @@ class Shift extends Model
 
     protected $table = 'shifts';
 
-    protected $fillable = ['nama_shift'];
+    protected $fillable = ['nama_shift', 'opd_id'];
+
+    public function opd()
+    {
+        return $this->belongsTo(Location::class, 'opd_id');
+    }
 }

@@ -14,7 +14,8 @@ class Divisi extends Model
     protected $fillable = [
         'nama_divisi',
         'id_atasan',
-        'id_jabatan'
+        'id_jabatan',
+        'id_opd'
     ];
 
     public function atasan()
@@ -26,5 +27,15 @@ class Divisi extends Model
     public function users()
     {
         return $this->hasMany(User::class, 'id_divisi');
+    }
+
+    public function jabatan()
+    {
+        return $this->belongsTo(Jabatan::class, 'id_jabatan');
+    }
+
+    public function opd()
+    {
+        return $this->belongsTo(Location::class, 'opd_id');
     }
 }

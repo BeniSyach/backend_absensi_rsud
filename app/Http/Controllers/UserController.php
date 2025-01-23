@@ -63,7 +63,7 @@ class UserController extends Controller
             $search = $request->input('search');
             
             // Build query with relationships
-            $query = User::with(['divisi', 'levelAkses', 'gender', 'statusPegawai']);
+            $query = User::with(['divisi', 'levelAkses', 'gender', 'statusPegawai', 'opd']);
     
             // Apply filters if provided
             if ($request->has('divisi')) {
@@ -137,7 +137,7 @@ class UserController extends Controller
      */
     public function show($id)
     {
-        $user = User::with(['divisi', 'levelAkses', 'gender', 'statusPegawai'])->find($id);
+        $user = User::with(['divisi', 'levelAkses', 'gender', 'statusPegawai', 'opd'])->find($id);
 
         if (!$user) {
             return response()->json(['error' => 'User not found'], 404);
@@ -198,6 +198,7 @@ class UserController extends Controller
             'id_gender' => 'required|exists:gender,id',
             'id_status' => 'required|exists:status_pegawai,id',
             'device_token' => 'nullable|string',
+            'opd_id' => 'required|string|exists:locations,id'
         ]);
 
         $user = User::create([
@@ -210,6 +211,7 @@ class UserController extends Controller
             'id_gender' => $validated['id_gender'],
             'id_status' => $validated['id_status'],
             'device_token' => $validated['device_token'],
+            'opd_id' => $validated['opd_id'],
         ]);
 
         return response()->json($user, 201);
@@ -241,6 +243,7 @@ class UserController extends Controller
             'id_gender' => 'required|exists:gender,id',
             'id_status' => 'required|exists:status_pegawai,id',
             'device_token' => 'nullable|string',
+            'opd_id' => 'nullable|string|exists:locations,id'
         ]);
 
         if ($request->has('password')) {
@@ -250,17 +253,17 @@ class UserController extends Controller
         $user->update($validated);
 
         return response()->json($user, 200);
-    } catch (ValidationException $e) {
-        return response()->json([
-            'error' => 'Validation failed',
-            'messages' => $e->errors(),
-        ], 422);
-    } catch (\Exception $e) {
-        return response()->json([
-            'error' => 'Failed to update Users',
-            'message' => $e->getMessage(),
-        ], 500);
-    }
+        } catch (ValidationException $e) {
+            return response()->json([
+                'error' => 'Validation failed',
+                'messages' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to update Users',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
