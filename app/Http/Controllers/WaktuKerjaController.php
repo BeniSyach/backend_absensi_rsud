@@ -10,9 +10,17 @@ class WaktuKerjaController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $waktuKerjas = WaktuKerja::with(['hari', 'shift', 'opd'])->get();
+        $query = WaktuKerja::with(['hari', 'shift', 'opd']);
+    
+        // Periksa apakah parameter opd_id ada
+        if ($request->has('opd_id')) {
+            $query->where('opd_id', $request->opd_id);
+        }
+    
+        $waktuKerjas = $query->get();
+    
         return response()->json($waktuKerjas);
     }
 
@@ -117,13 +125,20 @@ class WaktuKerjaController extends Controller
         return response()->json(['message' => 'Shift deleted successfully'], 200);
     }
 
-    public function getByShift($shiftId)
+    public function getByShift(Request $request, $shiftId)
     {
-        // Ambil data WaktuKerja yang memiliki shift_id sesuai dengan parameter
-        $waktuKerjas = WaktuKerja::with(['hari', 'shift'])
-            ->where('shift_id', $shiftId)  // Filter berdasarkan shift_id
-            ->get();
-
+        // Mulai query dengan relasi yang diperlukan
+        $query = WaktuKerja::with(['hari', 'shift', 'opd'])
+            ->where('shift_id', $shiftId); // Filter berdasarkan shift_id
+    
+        // Periksa apakah parameter opd_id ada
+        if ($request->has('opd_id')) {
+            $query->where('opd_id', $request->opd_id); // Tambahkan filter berdasarkan opd_id
+        }
+    
+        // Ambil hasil query
+        $waktuKerjas = $query->get();
+    
         return response()->json($waktuKerjas);
     }
 

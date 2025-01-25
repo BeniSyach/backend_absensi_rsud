@@ -124,7 +124,7 @@ class AbsenMasukController extends Controller
                 'waktu_kerja_id' => 'required|exists:waktu_kerjas,id',
                 'longitude' => 'required|string',
                 'latitude' => 'required|string',
-                'photo' => 'required|image|mimes:jpeg,png,jpg|max:2048', // Validasi foto
+                'photo' => 'required|image|mimes:jpeg,png,jpg|max:15120', // Validasi foto
                 // 'tpp_in' => 'required|string',
                 // 'keterangan' => 'nullable|string',
             ]);
@@ -219,7 +219,7 @@ class AbsenMasukController extends Controller
         } catch (\Exception $e) {
             // Menangani error dan mengembalikan response error
             return response()->json([
-                'error' => 'Failed to create Absen Masuk',
+                'error' => $e->getMessage(),
                 'message' => $e->getMessage()
             ], 500);
         }

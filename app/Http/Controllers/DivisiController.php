@@ -10,9 +10,20 @@ class DivisiController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        return response()->json(Divisi::with(['atasan', 'jabatan', 'opd'])->get(), 200);
+        // Mulai query dengan relasi yang diperlukan
+        $query = Divisi::with(['atasan', 'jabatan', 'opd']);
+    
+        // Tambahkan filter jika parameter opd_id diberikan
+        if ($request->has('opd_id')) {
+            $query->where('opd_id', $request->opd_id);
+        }
+    
+        // Ambil hasil query
+        $divisi = $query->get();
+    
+        return response()->json($divisi, 200);
     }
 
     /**

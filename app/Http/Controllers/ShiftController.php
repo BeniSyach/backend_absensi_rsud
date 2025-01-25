@@ -10,9 +10,18 @@ class ShiftController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        return response()->json(Shift::with('opd')->get(), 200);
+        $query = Shift::with('opd');
+    
+        // Periksa apakah parameter opd_id ada
+        if ($request->has('opd_id')) {
+            $query->where('opd_id', $request->opd_id);
+        }
+    
+        $shifts = $query->get();
+    
+        return response()->json($shifts, 200);
     }
 
     /**

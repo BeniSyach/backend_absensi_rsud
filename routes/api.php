@@ -43,6 +43,7 @@ Route::middleware([JWTMiddleware::class])->group(function () {
     // Laporan Absensi
     Route::get('laporan-user', [LaporanAbsensiController::class, 'getlaporanByUser']);
     Route::get('laporan-cetak-user', [LaporanAbsensiController::class, 'getlaporanCetakByUser']);
+    Route::get('rekap-absensi', [LaporanAbsensiController::class, 'getLaporanAbsensiTLdanPSW']);
 
     // Data SPT
     Route::apiResource('spt', SPTController::class);

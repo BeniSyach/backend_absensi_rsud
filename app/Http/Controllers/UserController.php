@@ -71,15 +71,15 @@ class UserController extends Controller
             }
             
             if ($request->has('level_akses')) {
-                $query->where('level_akses_id', $request->level_akses);
+                $query->where('id_level_akses', $request->level_akses);
             }
             
             if ($request->has('status_pegawai')) {
-                $query->where('status_pegawai_id', $request->status_pegawai);
+                $query->where('id_status', $request->status_pegawai);
             }
             
             if ($request->has('gender')) {
-                $query->where('gender_id', $request->gender);
+                $query->where('id_gender', $request->gender);
             }
     
             // Apply search if provided
@@ -327,7 +327,7 @@ class UserController extends Controller
         try {
             // Validasi input foto
             $validatedData = $request->validate([
-                'photo' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048', // Validasi file gambar
+                'photo' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:15120', // Validasi file gambar
             ]);
 
             // Mendapatkan pengguna yang sedang login

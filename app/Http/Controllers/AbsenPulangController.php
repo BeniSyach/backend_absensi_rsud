@@ -106,7 +106,7 @@ class AbsenPulangController extends Controller
                 'waktu_kerja_id' => 'required|exists:waktu_kerjas,id',
                 'longitude' => 'required|string',
                 'latitude' => 'required|string',
-                'photo' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+                'photo' => 'required|image|mimes:jpeg,png,jpg|max:15120',
             ]);
 
             if ($request->shift_id == 2) {
@@ -140,13 +140,13 @@ class AbsenPulangController extends Controller
                     if ($selisihMenit <= 1) {
                         return 'Tepat Waktu';
                     } elseif ($selisihMenit <= 31) {
-                        return 'PSW1';
+                        return 'PSW 1';
                     } elseif ($selisihMenit <= 61) {
-                        return 'PSW2';
+                        return 'PSW 2';
                     } elseif ($selisihMenit <= 91) {
-                        return 'PSW3';
+                        return 'PSW 3';
                     } else {
-                        return 'PSW4';
+                        return 'PSW 4';
                     }
                 }
                 return 'Tepat Waktu';

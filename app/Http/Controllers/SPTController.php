@@ -138,7 +138,7 @@ class SPTController extends Controller
                 'waktu_spt' => 'required|date_format:H:i',
                 'lama_acara' => 'required|integer|min:1',
                 'lokasi_spt' => 'required|string|max:255',
-                'file_spt' => 'required|file|mimes:pdf|max:2048',
+                'file_spt' => 'required|file|mimes:pdf|max:15120',
                 'status' => 'nullable|integer',
             ]);
 

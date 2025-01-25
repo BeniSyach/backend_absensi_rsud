@@ -53,7 +53,7 @@
 </head>
 <body>
     <div class="header">
-        <h2>Laporan Absensi Pegawai RSUD Drs. H. Amri Tambunan</h2>
+        <h2>Rekap Laporan Absensi Pegawai RSUD Drs. H. Amri Tambunan</h2>
         <p>Periode: {{ $date }}</p>
     </div>
 
@@ -61,50 +61,53 @@
         <thead>
             <tr>
                 <th rowspan="2" style="width: 3%;">No</th>
-                <th rowspan="2" style="width: 8%;">Tanggal</th>
-                <th rowspan="2" style="width: 12%;">Nama</th>
-                <th rowspan="2" style="width: 5%;">shift</th>
-                <th colspan="5" class="subheader">Absen Masuk</th>
-                <th colspan="5" class="subheader">Absen Pulang</th>
+                <th rowspan="2" style="width: 8%;">Nama</th>
+                <th rowspan="2" style="width: 12%;">Divisi</th>
+                <th colspan="2" class="subheader">Absen Masuk</th>
+                <th colspan="2" class="subheader">Absen Pulang</th>
+                <th colspan="4" class="subheader">TL</th>
+                <th colspan="4" class="subheader">PSW</th>
+                <th rowspan="2" style="width: 8%;">Jumlah Absensi</th>
             </tr>
             <tr>
-                <th>Waktu</th>
-                <th>Reff</th>
-                <th>Selisih</th>
-                <th>Status</th>
-                <th>Keterangan</th>
-                <th>Waktu</th>
-                <th>Reff</th>
-                <th>Selisih</th>
-                <th>Status</th>
-                <th>Keterangan</th>
+                <th>Tepat Waktu</th>
+                <th>Terlambat</th>
+                <th>Lebih Cepat Pulang</th>
+                <th>Tepat Waktu</th>
+                <th>TL 1</th>
+                <th>TL 2</th>
+                <th>TL 3</th>
+                <th>TL 4</th>
+                <th>PSW 1</th>
+                <th>PSW 2</th>
+                <th>PSW 3</th>
+                <th>PSW 4</th>
             </tr>
         </thead>
         <tbody>
             @foreach($absensi as $index => $record)
-            @php
-                // Mengambil data absen pulang pertama jika ada
-                $absenPulang = $record->absenPulang->first();
-            @endphp
             <tr>
                 <td style="text-align: center;">{{ $index + 1 }}</td>
-                <td class="date-cell">{{ \Carbon\Carbon::parse($record->waktu_masuk)->format('d/m/Y') }}</td>
-                <td>{{ $record->user->name ?? '-' }}</td>
-                <td>{{ $record->shift->nama_shift ?? '-' }}</td>
+                <td>{{ $record->nama }}</td>
+                <td>{{ $record->divisi }}</td>
                 <!-- Absen Masuk -->
-                <td class="time-cell">{{ \Carbon\Carbon::parse($record->waktu_masuk)->format('H:i:s') }}</td>
-                <td>{{ $record->waktuKerja->jam_mulai ?? '-' }}</td>
-                <td>{{ $record->selish ?? '-' }}</td>
-                <td>{{ $record->tpp_in ?? '-' }}</td>
-                <td>{{ $record->keterangan ?? '-' }}</td>
+                <td>{{ $record->tepat_waktu_masuk }}</td>
+                <td>{{ $record->terlambat_masuk }}</td>
                 <!-- Absen Pulang -->
-                <td class="time-cell">
-                    {{ $absenPulang ? \Carbon\Carbon::parse($absenPulang->waktu_pulang)->format('H:i:s') : '-' }}
-                </td>
-                <td>{{ $record->waktuKerja->jam_selesai ?? '-' }}</td>
-                <td>{{ $absenPulang->selish ?? '-' }}</td>
-                <td>{{ $absenPulang->tpp_out ?? '-' }}</td>
-                <td>{{ $absenPulang->keterangan ?? '-' }}</td>
+                <td>{{ $record->lebih_cepat_pulang }}</td>
+                <td>{{ $record->tepat_waktu_pulang }}</td>
+                <!-- TL -->
+                <td>{{ $record->tl_1 }}</td>
+                <td>{{ $record->tl_2 }}</td>
+                <td>{{ $record->tl_3 }}</td>
+                <td>{{ $record->tl_4 }}</td>
+                <!-- PSW -->
+                <td>{{ $record->psw_1 }}</td>
+                <td>{{ $record->psw_2 }}</td>
+                <td>{{ $record->psw_3 }}</td>
+                <td>{{ $record->psw_4 }}</td>
+                <!-- Jumlah Absensi -->
+                <td>{{ $record->total_absensi }}</td>
             </tr>
             @endforeach
         </tbody>
