@@ -36,4 +36,15 @@ class AbsenPulang extends Model
     {
         return $this->belongsTo(User::class, 'user_id');
     }
+
+    public static function getTotalPulang($tanggal_awal, $tanggal_akhir)
+    {
+        return self::whereBetween('waktu_pulang', [$tanggal_awal, $tanggal_akhir])
+            ->selectRaw("
+                SUM(CASE WHEN keterangan = 'Lebih Cepat Pulang' THEN 1 ELSE 0 END) as total_lebih_cepat_pulang,
+                SUM(CASE WHEN keterangan = 'Tepat Waktu' THEN 1 ELSE 0 END) as total_tepat_waktu,
+                SUM(CASE WHEN keterangan = 'Lebih Lambat Pulang' THEN 1 ELSE 0 END) as total_lebih_lambat_pulang
+            ")
+            ->first();
+    }
 }

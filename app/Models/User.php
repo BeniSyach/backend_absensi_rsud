@@ -30,7 +30,8 @@ class User extends Authenticatable implements JWTSubject
         'id_gender',
         'id_status',
         'device_token',
-        'opd_id'
+        'opd_id',
+        'shift_id'
     ];
 
     /**
@@ -90,5 +91,38 @@ class User extends Authenticatable implements JWTSubject
     public function getJWTCustomClaims()
     {
         return [];  // Anda bisa menambahkan klaim khusus jika perlu
+    }
+
+    public static function getTotalUsers()
+    {
+        return self::count(); // Menggunakan query count() dari Eloquent
+    }
+
+    public static function getTotalAndroidUsers()
+    {
+        return self::whereNotNull('device_token')
+        ->where('device_token', '!=', 'web')
+        ->count();
+    }
+
+    /**
+     * Menghitung total pengguna Web berdasarkan device_token.
+     */
+    public static function getTotalWebUsers()
+    {
+        return self::where('device_token', 'web')->count();
+    }
+
+    /**
+     * Menghitung total pengguna yang belum pernah login (device_token NULL).
+     */
+    public static function getTotalUsersNeverLoggedIn()
+    {
+        return self::whereNull('device_token')->count();
+    }
+
+    public function shift()
+    {
+        return $this->belongsTo(Shift::class, 'shift_id');
     }
 }

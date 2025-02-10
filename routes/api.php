@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DivisiController;
 use App\Http\Controllers\GenderController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\AbsenPulangController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\LaporanAbsensiController;
 use App\Http\Middleware\JWTMiddleware;
+use App\Http\Middleware\BlockPostmanRequests;
 use App\Http\Middleware\JsonThrottleMiddleware;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -25,8 +27,10 @@ use Illuminate\Support\Facades\Route;
 // })->middleware('auth:sanctum');
 
 Route::post('register', [AuthController::class, 'register']);
-Route::post('login', [AuthController::class, 'login'])->middleware(['throttle:5,1']);
-
+// Route::post('login', [AuthController::class, 'login'])->middleware(['throttle:5,1']);
+Route::post('login', [AuthController::class, 'login']);
+Route::get('test-redis', [AuthController::class, 'testRedis']);
+Route::get('refresh_token', [AuthController::class, 'refresh_token']);
 
 Route::middleware([JWTMiddleware::class])->group(function () {
     // Autentication
@@ -35,15 +39,17 @@ Route::middleware([JWTMiddleware::class])->group(function () {
     Route::get('reset-device', [AuthController::class, 'resetAccount']);
 
     // Data Absensi
+    // === Absen Masuk ===
     Route::apiResource('absen-masuk', AbsenMasukController::class);
-    Route::get('/absen-masuk/user/{user_id}', [AbsenMasukController::class, 'getAbsenPulangByUser']);
-
+    Route::get('/absen-masuk/user/{user_id}', [AbsenMasukController::class, 'getAbsenPulangByUser'])->middleware(BlockPostmanRequests::class);
+    // === Absen Pulang ===
     Route::apiResource('absen-pulang', AbsenPulangController::class);
 
     // Laporan Absensi
     Route::get('laporan-user', [LaporanAbsensiController::class, 'getlaporanByUser']);
     Route::get('laporan-cetak-user', [LaporanAbsensiController::class, 'getlaporanCetakByUser']);
     Route::get('rekap-absensi', [LaporanAbsensiController::class, 'getLaporanAbsensiTLdanPSW']);
+    Route::get('data-rekap-absensi', [LaporanAbsensiController::class, 'getDataLaporanAbsensiTLdanPSW']);
 
     // Data SPT
     Route::apiResource('spt', SPTController::class);
@@ -52,7 +58,9 @@ Route::middleware([JWTMiddleware::class])->group(function () {
     Route::get('/spt/ditolak-sdm/{id}', [SPTController::class, 'setStatusDitolak']);
     
     // Dashboard
-    
+    Route::get('/total-pegawai', [DashboardController::class, 'totalUsers']);
+    Route::get('/dashboard/kehadiran-masuk', [DashboardController::class, 'laporanKehadiran']);
+    Route::get('/dashboard/kehadiran-pulang', [DashboardController::class, 'laporanPulang']);
 
     // Master Data
     //  --- DIVISI ---

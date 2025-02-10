@@ -77,7 +77,7 @@ class LaporanAbsensiController extends Controller
         $sortOrder = $request->input('sortOrder', 'DESC');
         
         try {
-            $query = AbsenMasuk::with(['user', 'waktuKerja', 'shift', 'absenPulang']);
+            $query = AbsenMasuk::with(['user.statusPegawai', 'user.divisi', 'waktuKerja', 'shift', 'absenPulang']);
             
             // Filter by user_id if provided
             if (isset($validated['user_id'])) {
@@ -293,6 +293,88 @@ class LaporanAbsensiController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Gagal membuat laporan PDF',
+                'message' => $e->getMessage()
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    public function getDataLaporanAbsensiTLdanPSW(Request $request)
+    {
+        try {
+            // Validasi request
+            $validated = $request->validate([
+                'user_id' => 'nullable|exists:users,id',
+                'tanggal_awal' => 'required|date',
+                'tanggal_akhir' => 'required|date|after_or_equal:tanggal_awal',
+                'divisi' => 'nullable|integer|exists:divisi,id',
+                'status_pegawai' => 'nullable|integer|exists:status_pegawai,id',
+            ]);
+    
+            $absensi = AbsenMasuk::select(
+                'users.name as nama',
+                'divisi.nama_divisi as divisi',
+                DB::raw('SUM(CASE WHEN absen_masuk.keterangan = \'Tepat Waktu\' THEN 1 ELSE 0 END) AS tepat_waktu_masuk'),
+                DB::raw('SUM(CASE WHEN absen_masuk.keterangan = \'Terlambat\' THEN 1 ELSE 0 END) AS terlambat_masuk'),
+                DB::raw('SUM(CASE WHEN absen_pulang.keterangan = \'Tepat Waktu\' THEN 1 ELSE 0 END) AS tepat_waktu_pulang'),
+                DB::raw('SUM(CASE WHEN absen_pulang.keterangan = \'Lebih Cepat Pulang\' THEN 1 ELSE 0 END) AS lebih_cepat_pulang'),
+                DB::raw('SUM(CASE WHEN absen_masuk.tpp_in = \'TL 1\' THEN 1 ELSE 0 END) AS tl_1'),
+                DB::raw('SUM(CASE WHEN absen_masuk.tpp_in = \'TL 2\' THEN 1 ELSE 0 END) AS tl_2'),
+                DB::raw('SUM(CASE WHEN absen_masuk.tpp_in = \'TL 3\' THEN 1 ELSE 0 END) AS tl_3'),
+                DB::raw('SUM(CASE WHEN absen_masuk.tpp_in = \'TL 4\' THEN 1 ELSE 0 END) AS tl_4'),
+                DB::raw('SUM(CASE WHEN absen_pulang.tpp_out = \'PSW 1\' THEN 1 ELSE 0 END) AS psw_1'),
+                DB::raw('SUM(CASE WHEN absen_pulang.tpp_out = \'PSW 2\' THEN 1 ELSE 0 END) AS psw_2'),
+                DB::raw('SUM(CASE WHEN absen_pulang.tpp_out = \'PSW 3\' THEN 1 ELSE 0 END) AS psw_3'),
+                DB::raw('SUM(CASE WHEN absen_pulang.tpp_out = \'PSW 4\' THEN 1 ELSE 0 END) AS psw_4'),
+                DB::raw('COUNT(*) AS total_absensi')
+            )
+            ->join('users', 'absen_masuk.user_id', '=', 'users.id')
+            ->leftJoin('divisi', 'users.id_divisi', '=', 'divisi.id')
+            ->leftJoin('absen_pulang', function($join) {
+                $join->on('absen_masuk.id', '=', 'absen_pulang.absen_masuk_id'); // Tambahkan soft delete jika diperlukan
+            })
+            ->when($request->filled('user_id'), function ($query) use ($request) {
+                $query->where('absen_masuk.user_id', $request->user_id);
+            })
+            ->when($request->filled('divisi'), function ($query) use ($request) {
+                $query->where('users.id_divisi', $request->divisi);
+            })
+            ->when($request->filled('status_pegawai'), function ($query) use ($request) {
+                $query->where('users.id_status', $request->status_pegawai);
+            })
+            ->whereBetween('absen_masuk.waktu_masuk', [
+                $request->tanggal_awal . ' 00:00:00',
+                $request->tanggal_akhir . ' 23:59:59'
+            ])
+            ->groupBy('users.id', 'users.name', 'divisi.nama_divisi')
+            ->orderBy('users.name')
+            ->get();
+    
+            if ($absensi->isEmpty()) {
+                return response()->json([
+                    'error' => 'Data absensi tidak ditemukan untuk periode yang dipilih'
+                ], Response::HTTP_NOT_FOUND);
+            }
+    
+            $data = [
+                'title' => 'Rekap Laporan Absensi Pegawai RSUD Drs. H. Amri Tambunan',
+                'date' => "Periode: " . Carbon::parse($request->tanggal_awal)->format('d/m/Y') . 
+                        " - " . Carbon::parse($request->tanggal_akhir)->format('d/m/Y'),
+                'absensi' => $absensi
+            ];
+    
+            return response()->json([
+                'status' => 'success',
+                'data' => $data
+            ]);
+        
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'error' => 'Validasi gagal',
+                'messages' => $e->errors()
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Gagal membuat data laporan',
                 'message' => $e->getMessage()
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }

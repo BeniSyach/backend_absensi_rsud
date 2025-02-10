@@ -45,4 +45,14 @@ class AbsenMasuk extends Model
     {
         return $this->belongsTo(Shift::class, 'shift_id');
     }
+
+    public static function getTotalKehadiran($tanggal_awal, $tanggal_akhir)
+    {
+        return self::whereBetween('waktu_masuk', [$tanggal_awal, $tanggal_akhir])
+            ->selectRaw("
+                SUM(CASE WHEN keterangan = 'Terlambat' THEN 1 ELSE 0 END) as total_terlambat,
+                SUM(CASE WHEN keterangan = 'Tepat Waktu' THEN 1 ELSE 0 END) as total_tepat_waktu
+            ")
+            ->first();
+    }
 }

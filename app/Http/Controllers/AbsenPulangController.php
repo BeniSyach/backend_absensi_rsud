@@ -4,9 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\AbsenPulang;
 use App\Models\WaktuKerja;
+use App\Models\AbsenMasuk;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class AbsenPulangController extends Controller
 {
@@ -109,7 +112,45 @@ class AbsenPulangController extends Controller
                 'photo' => 'required|image|mimes:jpeg,png,jpg|max:15120',
             ]);
 
-            if ($request->shift_id == 2) {
+            // Ambil latitude dan longitude dari request
+            $latitude = $request->latitude;
+            $longitude = $request->longitude;
+
+            // Query untuk mendapatkan lokasi terdekat dalam radius
+            $nearestLocation = DB::selectOne("
+                SELECT id, place_name, latitude, longitude, radius,
+                    earth_distance(
+                        ll_to_earth(latitude::double precision, longitude::double precision), 
+                        ll_to_earth(?, ?)
+                    ) AS distance
+                FROM locations
+                WHERE earth_distance(
+                        ll_to_earth(latitude::double precision, longitude::double precision), 
+                        ll_to_earth(?, ?)
+                    ) <= radius
+                ORDER BY distance ASC
+                LIMIT 1
+            ", [$latitude, $longitude, $latitude, $longitude]);
+
+            // Jika tidak ada lokasi dalam radius, berikan respon error
+            if (!$nearestLocation) {
+                return response()->json([
+                    'status' => 'Anda berada di luar lokasi',
+                    'message' => 'Anda berada di luar lokasi'
+                ], 403);
+            }
+
+            $user = User::find($request->user_id);
+            if (!$user) {
+                return response()->json([
+                    'error' => 'User tidak ditemukan',
+                    'message' => 'User dengan ID tersebut tidak ditemukan'
+                ], 404);
+            }
+
+            $shiftId = $user->shift_id;
+
+            if ($shiftId == 2) { // ini adalah 1 shift yaitu dari jam 8 pagi sampai jam 4 sore
                 // Cek apakah sudah absen pulang hari ini
                 $existingAbsenPulang = AbsenPulang::where('user_id', $request->user_id)
                     ->where('shift_id', 2)
@@ -120,10 +161,15 @@ class AbsenPulangController extends Controller
                 if ($existingAbsenPulang) {
                     return response()->json([
                         'error' => 'Anda sudah melakukan absen pulang hari ini',
+                        'message' => 'Anda sudah melakukan absen pulang hari ini',
                         'last_absen' => $existingAbsenPulang->waktu_pulang
                     ], 400);
                 }
             }
+
+            // Ambil data absen masuk
+            $absenMasuk = AbsenMasuk::findOrFail($request->absen_masuk_id);
+            $tanggalMasuk = Carbon::parse($absenMasuk->waktu_masuk);
         
             // Ambil waktu sekarang sebagai waktu pulang
             $waktuPulang = Carbon::now();
@@ -132,10 +178,18 @@ class AbsenPulangController extends Controller
             $waktuKerja = WaktuKerja::findOrFail($request->waktu_kerja_id);
         
             // Hitung selisih waktu antara waktu_pulang dan jam_selesai
-            $jamSelesai = Carbon::parse($waktuKerja->jam_selesai);
+            $jamSelesai = Carbon::parse($tanggalMasuk->format('Y-m-d') . ' ' . $waktuKerja->jam_selesai);
             $selisihMenit = abs($waktuPulang->diffInMinutes($jamSelesai));
 
-            $tppStatus = function($selisihMenit, $isPulangCepat) {
+            $tppStatus = function($waktuPulang, $jamSelesai, $isPulangCepat) {
+                // Selisih dalam menit
+                $selisihMenit = $waktuPulang->diffInMinutes($jamSelesai);
+                
+                // Jika lebih dari 1 jam dari waktu selesai (60 menit)
+                if ($waktuPulang->greaterThan($jamSelesai) && $selisihMenit > 60) {
+                    return 'Lebih Lambat Pulang';
+                }
+                
                 if ($isPulangCepat) {
                     if ($selisihMenit <= 1) {
                         return 'Tepat Waktu';
@@ -151,17 +205,34 @@ class AbsenPulangController extends Controller
                 }
                 return 'Tepat Waktu';
             };
-        
+            $jam_start = Carbon::parse($waktuKerja->jam_mulai);
+            // Cek apakah absen pulang di hari yang berbeda
+            if ($jam_start->hour >= 20) { // Jika jam mulai di atas jam 8 malam
+                $isHariBerbeda = false; // Abaikan perbedaan hari karena memang shift malam
+            } else {
+                $isHariBerbeda = $waktuPulang->format('Y-m-d') !== $tanggalMasuk->format('Y-m-d');
+            }
+
+            // Cek apakah pulang lebih cepat
             $isPulangCepat = $waktuPulang->lessThan($jamSelesai);
-            if ($isPulangCepat) {
+
+            // Cek apakah terlambat lebih dari 1 jam
+            $isLebihLambat = $waktuPulang->greaterThan($jamSelesai) && $selisihMenit > 60;
+
+            // Tentukan status
+            if ($isHariBerbeda || $isLebihLambat) {
+                $statusPulang = 'Lebih Lambat Pulang';
+                $tpp_out = 'Tepat Waktu';
+            } elseif ($isPulangCepat) {
                 $statusPulang = 'Lebih Cepat Pulang';
-                $tpp_out = $tppStatus($selisihMenit, true);
+                $tpp_out = $tppStatus($waktuPulang, $jamSelesai, true);
             } else {
                 $statusPulang = 'Tepat Waktu';
                 $tpp_out = 'Tepat Waktu';
             }
         
             // Tambahkan waktu_pulang, selisih, dan status ke data yang divalidasi
+            $validated['shift_id'] = $shiftId;
             $validated['waktu_pulang'] = $waktuPulang->toDateTimeString();
             $validated['selish'] = $jamSelesai->diff($waktuPulang)->format('%H:%I:%S');
             $validated['keterangan'] = $statusPulang;
@@ -188,7 +259,8 @@ class AbsenPulangController extends Controller
                 'message' => 'Absen pulang berhasil disimpan',
                 'data' => $absen_pulang,
                 'status_pulang' => $statusPulang,
-                'selisih_waktu' => $jamSelesai->diff($waktuPulang)->format('%H:%I:%S')
+                'selisih_waktu' => $jamSelesai->diff($waktuPulang)->format('%H:%I:%S'),
+                'lokasi' => $nearestLocation
             ], 201);
         
         } catch (\Exception $e) {

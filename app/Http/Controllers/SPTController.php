@@ -299,6 +299,43 @@ class SPTController extends Controller
         $spt->status = 1;
         $spt->save();
 
+        $tanggalSpt = $spt->tanggal_spt;
+        $lamaAcara = $spt->lama_acara;
+
+        for ($i = 0; $i < $lamaAcara; $i++) {
+            // Hitung tanggal untuk setiap hari
+            $tanggal = \Carbon\Carbon::parse($tanggalSpt)->addDays($i)->format('Y-m-d');
+    
+            // Menambahkan data ke absen_masuk
+            $absenMasuk = new AbsenMasuk();
+            $absenMasuk->user_id = $spt->id_user; // Sesuaikan dengan user_id yang sesuai
+            $absenMasuk->waktu_masuk = Carbon::parse($tanggal)->setTime(8, 0); // Set waktu masuk pada pukul 08:00
+            $absenMasuk->shift_id = 2; // Sesuaikan dengan shift yang berlaku
+            $absenMasuk->waktu_kerja_id = 2; // Sesuaikan dengan waktu kerja ID yang berlaku
+            $absenMasuk->longitude = '98.867642'; // Sesuaikan dengan data longitude
+            $absenMasuk->latitude = '3.556988'; // Sesuaikan dengan data latitude
+            $absenMasuk->selish = '00:00:00'; // Sesuaikan dengan selisih waktu
+            $absenMasuk->photo = 'default_photo.jpg'; // Sesuaikan dengan URL/photo file yang diinginkan
+            $absenMasuk->tpp_in = 'Tepat Waktu'; // Sesuaikan dengan informasi tpp_in
+            $absenMasuk->keterangan = 'SPT'; // Sesuaikan dengan keterangan yang relevan
+            $absenMasuk->save();
+    
+            // Menambahkan data ke absen_pulang
+            $absenPulang = new AbsenPulang();
+            $absenPulang->absen_masuk_id = $absenMasuk->id; // Menghubungkan dengan id absen_masuk
+            $absenPulang->user_id = $spt->id_user; // Sesuaikan dengan user_id
+            $absenPulang->waktu_pulang = Carbon::parse($tanggal)->setTime(17, 0); // Set waktu pulang pada pukul 17:00
+            $absenPulang->shift_id = 2; // Sesuaikan dengan shift yang berlaku
+            $absenPulang->waktu_kerja_id = 2; // Sesuaikan dengan waktu kerja ID yang berlaku
+            $absenPulang->longitude = '98.867642'; // Sesuaikan dengan data longitude
+            $absenPulang->latitude = '3.556988'; // Sesuaikan dengan data latitude
+            $absenPulang->selish = '00:00:00'; // Sesuaikan dengan selisih waktu
+            $absenPulang->photo = 'default_photo.jpg'; // Sesuaikan dengan URL/photo file yang diinginkan
+            $absenPulang->tpp_out = 'Tepat Waktu'; // Sesuaikan dengan informasi tpp_out
+            $absenPulang->keterangan = 'SPT'; // Sesuaikan dengan keterangan yang relevan
+            $absenPulang->save();
+        }
+
         // Kembalikan respons sukses
         return response()->json(['message' => 'Status SPT diterima'], 200);
     }

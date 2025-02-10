@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\AbsenMasuk;
 use App\Models\WaktuKerja;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Symfony\Component\HttpFoundation\Response;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class AbsenMasukController extends Controller
 {
@@ -52,7 +54,7 @@ class AbsenMasukController extends Controller
             $search = $request->input('search');
     
             // Build query
-            $query = AbsenMasuk::with(['user.divisi', 'absenPulang' => function($query) {
+            $query = AbsenMasuk::with(['user.divisi', 'user.levelAkses', 'absenPulang' => function($query) {
                 $query->select('*')
                   ->latest()
                   ->take(1);
@@ -129,15 +131,55 @@ class AbsenMasukController extends Controller
                 // 'keterangan' => 'nullable|string',
             ]);
 
-            if ($request->shift_id == 2) {
+             // Ambil latitude dan longitude dari request
+                $latitude = $request->latitude;
+                $longitude = $request->longitude;
+
+                // Query untuk mendapatkan lokasi terdekat dalam radius
+                $nearestLocation = DB::selectOne("
+                    SELECT id, place_name, latitude, longitude, radius,
+                        earth_distance(
+                            ll_to_earth(latitude::double precision, longitude::double precision), 
+                            ll_to_earth(?, ?)
+                        ) AS distance
+                    FROM locations
+                    WHERE earth_distance(
+                            ll_to_earth(latitude::double precision, longitude::double precision), 
+                            ll_to_earth(?, ?)
+                        ) <= radius
+                    ORDER BY distance ASC
+                    LIMIT 1
+                ", [$latitude, $longitude, $latitude, $longitude]);
+
+                // Jika tidak ada lokasi dalam radius, berikan respon error
+                if (!$nearestLocation) {
+                    return response()->json([
+                        'status' => 'Anda berada di luar lokasi',
+                        'message' => 'Anda berada di luar lokasi'
+                    ], 403);
+                }
+
+            $user = User::find($request->user_id);
+
+            if (!$user) {
+                return response()->json([
+                    'error' => 'User tidak ditemukan',
+                    'message' => 'User dengan ID tersebut tidak ditemukan'
+                ], 404);
+            }
+
+            $shiftId = $user->shift_id;
+
+            if ($shiftId == 2) {
                 // Cek apakah sudah ada absen hari ini untuk user tersebut
-                $existingAbsen = AbsenMasuk::where('user_id', $request->user_id)
+                $existingAbsen = AbsenMasuk::where('user_id', $user->id)
                     ->whereDate('waktu_masuk', Carbon::today())
                     ->first();
     
                 if ($existingAbsen) {
                     return response()->json([
                         'error' => 'Anda sudah melakukan absen hari ini',
+                        'message' => 'Anda sudah melakukan absen hari ini',
                         'last_absen' => $existingAbsen->waktu_masuk
                     ], 400);
                 }
@@ -176,7 +218,13 @@ class AbsenMasukController extends Controller
                 }
             };
 
-            $isTerlambat = $waktuMasuk->greaterThan($jamMulai);
+            if ($waktuMasuk->hour == $jamMulai->hour && $waktuMasuk->minute == $jamMulai->minute) {
+                // Jika menitnya sama, hanya cek detik
+                $isTerlambat = false;
+            } else {
+                // Jika menitnya berbeda, maka dianggap terlambat
+                $isTerlambat = $waktuMasuk->greaterThan($jamMulai);
+            }
 
             if ($isTerlambat) {
                 $statusPulang = 'Terlambat';
@@ -187,6 +235,7 @@ class AbsenMasukController extends Controller
             }
         
             // Tambahkan waktu_masuk dan selisih ke data yang divalidasi
+            $validated['shift_id'] = $shiftId;
             $validated['waktu_masuk'] = $waktuMasuk->toDateTimeString();
             $validated['selish'] = $selisih;
             $validated['tpp_in'] = $tpp_in;
@@ -201,19 +250,23 @@ class AbsenMasukController extends Controller
                 $validated['photo'] = $photoPath;
             } else {
                 return response()->json([
-                    'error' => 'Invalid photo file or file not provided'
+                    'error' => 'Invalid photo file or file not provided',
+                    'message' => 'Invalid Photo',
                 ], 400);
             }
         
             // dd($validated);
             // Simpan data absen masuk ke dalam database
             $absen_masuk = AbsenMasuk::create($validated);
+
+
         
             // Mengembalikan response sukses
             return response()->json([
                 'message' => 'Absen masuk berhasil disimpan',
                 'data' => $absen_masuk,
                 'selisih_waktu' => $selisih,
+                'lokasi' => $nearestLocation
             ], 201);
         
         } catch (\Exception $e) {
@@ -362,7 +415,7 @@ class AbsenMasukController extends Controller
             $sortBy = $request->input('sortBy', 'waktu_masuk');
             $sortOrder = $request->input('sortOrder', 'DESC'); 
         
-            $AbsenMasukDanPulang = AbsenMasuk::with(['user', 'absenPulang'])
+            $AbsenMasukDanPulang = AbsenMasuk::with(['user.divisi', 'absenPulang'])
                 ->where('user_id', $idUser) 
                 ->orderBy($sortBy, $sortOrder) 
                 ->paginate($limit); 

@@ -17,6 +17,13 @@ class UserController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
+
+     /**
+     * @OA\Get(
+     *     path="/api/users",
+     *     @OA\Response(response="200", description="An example endpoint")
+     * )
+     */
     public function index(Request $request)
     {
         try {
@@ -30,7 +37,8 @@ class UserController extends Controller
                 'divisi' => 'nullable|integer|exists:divisi,id',
                 'level_akses' => 'nullable|integer|exists:level_akses,id',
                 'status_pegawai' => 'nullable|integer|exists:status_pegawai,id',
-                'gender' => 'nullable|integer|exists:gender,id'
+                'gender' => 'nullable|integer|exists:gender,id',
+                'shift' => 'nullable|integer|exists:shifts,id'
             ], [
                 'page.integer' => 'Halaman harus berupa angka.',
                 'page.min' => 'Halaman minimal 1.',
@@ -44,7 +52,8 @@ class UserController extends Controller
                 'divisi.exists' => 'Divisi tidak ditemukan.',
                 'level_akses.exists' => 'Level akses tidak ditemukan.',
                 'status_pegawai.exists' => 'Status pegawai tidak ditemukan.',
-                'gender.exists' => 'Gender tidak ditemukan.'
+                'gender.exists' => 'Gender tidak ditemukan.',
+                'shift.exists' => 'Shift tidak ditemukan.'
             ]);
     
             if ($validator->fails()) {
@@ -63,7 +72,7 @@ class UserController extends Controller
             $search = $request->input('search');
             
             // Build query with relationships
-            $query = User::with(['divisi', 'levelAkses', 'gender', 'statusPegawai', 'opd']);
+            $query = User::with(['divisi', 'levelAkses', 'gender', 'statusPegawai', 'opd', 'shift']);
     
             // Apply filters if provided
             if ($request->has('divisi')) {
@@ -80,6 +89,10 @@ class UserController extends Controller
             
             if ($request->has('gender')) {
                 $query->where('id_gender', $request->gender);
+            }
+
+            if ($request->has('shift')) {
+                $query->where('shift_id', $request->shift);
             }
     
             // Apply search if provided
@@ -137,7 +150,7 @@ class UserController extends Controller
      */
     public function show($id)
     {
-        $user = User::with(['divisi', 'levelAkses', 'gender', 'statusPegawai', 'opd'])->find($id);
+        $user = User::with(['divisi', 'levelAkses', 'gender', 'statusPegawai', 'opd', 'shift'])->find($id);
 
         if (!$user) {
             return response()->json(['error' => 'User not found'], 404);
@@ -198,7 +211,8 @@ class UserController extends Controller
             'id_gender' => 'required|exists:gender,id',
             'id_status' => 'required|exists:status_pegawai,id',
             'device_token' => 'nullable|string',
-            'opd_id' => 'required|string|exists:locations,id'
+            'opd_id' => 'required|string|exists:locations,id',
+            'shift_id' => 'required|string|exists:shifts,id'
         ]);
 
         $user = User::create([
@@ -212,6 +226,7 @@ class UserController extends Controller
             'id_status' => $validated['id_status'],
             'device_token' => $validated['device_token'],
             'opd_id' => $validated['opd_id'],
+            'shift_id' => $validated['shift_id']
         ]);
 
         return response()->json($user, 201);
@@ -243,7 +258,8 @@ class UserController extends Controller
             'id_gender' => 'required|exists:gender,id',
             'id_status' => 'required|exists:status_pegawai,id',
             'device_token' => 'nullable|string',
-            'opd_id' => 'nullable|string|exists:locations,id'
+            'opd_id' => 'nullable|string|exists:locations,id',
+            'shift_id' => 'nullable|string|exists:shifts,id',
         ]);
 
         if ($request->has('password')) {
