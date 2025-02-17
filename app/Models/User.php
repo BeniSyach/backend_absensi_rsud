@@ -45,6 +45,10 @@ class User extends Authenticatable implements JWTSubject
         'device_token'
     ];
 
+    protected $casts = [
+        'lastAbsenStatus' => 'array'
+    ];
+
     /**
      * Get the attributes that should be cast.
      *

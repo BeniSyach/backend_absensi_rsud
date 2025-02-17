@@ -43,7 +43,7 @@ Route::middleware([JWTMiddleware::class])->group(function () {
     Route::apiResource('absen-masuk', AbsenMasukController::class);
     Route::get('/absen-masuk/user/{user_id}', [AbsenMasukController::class, 'getAbsenPulangByUser'])->middleware(BlockPostmanRequests::class);
     // === Absen Pulang ===
-    Route::apiResource('absen-pulang', AbsenPulangController::class);
+    Route::apiResource('absen-pulang', AbsenPulangController::class)->middleware(BlockPostmanRequests::class);
 
     // Laporan Absensi
     Route::get('laporan-user', [LaporanAbsensiController::class, 'getlaporanByUser']);
@@ -77,6 +77,7 @@ Route::middleware([JWTMiddleware::class])->group(function () {
     Route::apiResource('users', UserController::class);
     Route::put('reset-password', [UserController::class, 'resetPassword'])->middleware(['throttle:5,1']);
     Route::post('upload-photo', [UserController::class, 'uploadPhoto'])->middleware(['throttle:5,1']);
+    Route::get('detail-user/{user_id}', [UserController::class, 'detail_user']);
     // --- SHIFT KERJA ---
     Route::apiResource('shift', ShiftController::class);
     // --- HARI KERJA ---

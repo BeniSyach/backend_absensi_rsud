@@ -26,6 +26,7 @@ class AbsenMasukController extends Controller
                 'sortBy' => 'string|in:waktu_masuk,created_at,user_id',
                 'sortOrder' => 'string|in:ASC,DESC',
                 'search' => 'nullable|string|max:255',
+                'user_id' => 'nullable|exists:users,id',
             ], [
                 'page.integer' => 'Halaman harus berupa angka.',
                 'page.min' => 'Halaman minimal 1.',
@@ -52,6 +53,7 @@ class AbsenMasukController extends Controller
             $sortBy = $request->input('sortBy', 'waktu_masuk');
             $sortOrder = $request->input('sortOrder', 'DESC');
             $search = $request->input('search');
+            $user_id = $request->input('user_id');
     
             // Build query
             $query = AbsenMasuk::with(['user.divisi', 'user.levelAkses', 'absenPulang' => function($query) {
@@ -59,6 +61,10 @@ class AbsenMasukController extends Controller
                   ->latest()
                   ->take(1);
             }]);
+
+            if ($user_id) {
+                $query->where('user_id', $user_id);
+            }
     
             // Apply search if provided
             if ($search) {

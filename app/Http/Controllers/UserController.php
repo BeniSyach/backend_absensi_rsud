@@ -148,50 +148,50 @@ class UserController extends Controller
      * @param  \App\Models\User  $user
      * @return \Illuminate\Http\Response
      */
-    public function show($id)
-    {
-        $user = User::with(['divisi', 'levelAkses', 'gender', 'statusPegawai', 'opd', 'shift'])->find($id);
+    // public function show($id)
+    // {
+    //     $user = User::with(['divisi', 'levelAkses', 'gender', 'statusPegawai', 'opd', 'shift'])->find($id);
 
-        if (!$user) {
-            return response()->json(['error' => 'User not found'], 404);
-        }
+    //     if (!$user) {
+    //         return response()->json(['error' => 'User not found'], 404);
+    //     }
 
-        // Menambahkan query untuk mendapatkan status absen terakhir
-            $lastAbsen = DB::selectOne("
-            WITH last_absen AS (
-                SELECT 
-                    am.id AS absen_masuk_id,
-                    am.user_id,
-                    am.waktu_masuk,
-                    ap.id AS absen_pulang_id,
-                    ap.waktu_pulang
-                FROM 
-                    absen_masuk am
-                LEFT JOIN 
-                    absen_pulang ap ON am.id = ap.absen_masuk_id
-                WHERE
-                    am.user_id = :user_id
-                ORDER BY 
-                    am.waktu_masuk DESC
-                LIMIT 1
-            )
-            SELECT 
-                la.absen_masuk_id,
-                CASE
-                    WHEN la.absen_masuk_id IS NOT NULL AND la.absen_pulang_id IS NULL THEN 1
-                    WHEN la.absen_masuk_id IS NOT NULL AND la.absen_pulang_id IS NOT NULL  THEN 0
-                    WHEN la.absen_masuk_id IS NULL AND la.absen_pulang_id IS NOT NULL THEN 0
-                    ELSE 1
-                END AS status
-            FROM 
-                last_absen la;
-        ", ['user_id' => $id]);
+    //     // Menambahkan query untuk mendapatkan status absen terakhir
+    //         $lastAbsen = DB::selectOne("
+    //         WITH last_absen AS (
+    //             SELECT 
+    //                 am.id AS absen_masuk_id,
+    //                 am.user_id,
+    //                 am.waktu_masuk,
+    //                 ap.id AS absen_pulang_id,
+    //                 ap.waktu_pulang
+    //             FROM 
+    //                 absen_masuk am
+    //             LEFT JOIN 
+    //                 absen_pulang ap ON am.id = ap.absen_masuk_id
+    //             WHERE
+    //                 am.user_id = :user_id
+    //             ORDER BY 
+    //                 am.waktu_masuk DESC
+    //             LIMIT 1
+    //         )
+    //         SELECT 
+    //             la.absen_masuk_id,
+    //             CASE
+    //                 WHEN la.absen_masuk_id IS NOT NULL AND la.absen_pulang_id IS NULL THEN 1
+    //                 WHEN la.absen_masuk_id IS NOT NULL AND la.absen_pulang_id IS NOT NULL  THEN 0
+    //                 WHEN la.absen_masuk_id IS NULL AND la.absen_pulang_id IS NOT NULL THEN 0
+    //                 ELSE 1
+    //             END AS status
+    //         FROM 
+    //             last_absen la;
+    //     ", ['user_id' => $id]);
 
-        // Menggabungkan status absen terakhir dengan data user
-        $user->lastAbsenStatus = $lastAbsen;
+    //     // Menggabungkan status absen terakhir dengan data user
+    //     $user->lastAbsenStatus = $lastAbsen;
 
-        return response()->json($user, 200);
-    }
+    //     return response()->json($user, 200);
+    // }
 
     /**
      * Membuat pengguna baru.
@@ -371,5 +371,120 @@ class UserController extends Controller
                 'message' => $e->getMessage()
             ], 500);
         }
+    }
+
+    public function show($id)
+    {
+        $user = User::with(['divisi', 'levelAkses', 'gender', 'statusPegawai', 'opd', 'shift'])->find($id);
+
+        if (!$user) {
+            return response()->json(['error' => 'User not found'], 404);
+        }
+    
+        // Ambil shift_id dari user
+        $shiftId = $user->shift_id;
+    
+        // Query untuk mendapatkan status absen terakhir
+        $lastAbsen = DB::selectOne("
+            WITH last_absen AS (
+                SELECT 
+                    am.id AS absen_masuk_id,
+                    am.user_id,
+                    am.waktu_masuk,
+                    ap.id AS absen_pulang_id,
+                    ap.waktu_pulang
+                FROM 
+                    absen_masuk am
+                LEFT JOIN 
+                    absen_pulang ap ON am.id = ap.absen_masuk_id
+                WHERE
+                    am.user_id = :user_id
+                ORDER BY 
+                    am.waktu_masuk DESC
+                LIMIT 1
+            )
+            SELECT 
+                la.absen_masuk_id,
+                la.absen_pulang_id,
+                la.waktu_masuk
+            FROM 
+                last_absen la;
+        ", ['user_id' => $id]);
+    
+        // Jika belum ada absen sebelumnya
+        if (!$lastAbsen) {
+            $user->lastAbsenStatus = [
+                'status' => 0
+            ];
+            
+            return response()->json($user, 200);
+        }
+    
+        // Hitung selisih hari antara waktu masuk terakhir dan hari ini
+        $waktuMasukTerakhir = strtotime($lastAbsen->waktu_masuk);
+        $hariIni = strtotime(date('Y-m-d H:i:s'));
+        $selisihHari = floor(($hariIni - $waktuMasukTerakhir) / 86400); // 86400 detik = 1 hari
+    
+        // Jika lebih dari 1 hari, anggap absen masuk baru (bukan absen pulang)
+        if ($selisihHari >= 1) {
+            $status = 0; // Harus absen masuk, bukan absen pulang
+        } else {
+            // Ambil shift yang paling dekat dengan waktu masuk terakhir
+            $waktuKerja = DB::selectOne("
+                SELECT jam_mulai, jam_selesai 
+                FROM waktu_kerjas 
+                WHERE shift_id = :shift_id
+                ORDER BY ABS(EXTRACT(EPOCH FROM (jam_mulai - :waktu_masuk))) ASC 
+                LIMIT 1
+            ", [
+                'shift_id' => $shiftId,
+                'waktu_masuk' => $lastAbsen->waktu_masuk
+            ]);
+    
+            if (!$waktuKerja) {
+                return response()->json(['error' => 'Shift kerja tidak ditemukan'], 404);
+            }
+    
+            // Konversi waktu shift
+            $jamMulaiShift = strtotime($waktuKerja->jam_mulai);
+            $jamSelesaiShift = strtotime($waktuKerja->jam_selesai);
+    
+            // Jika shift malam (jam selesai lebih kecil dari jam mulai), tambahkan 1 hari ke jam selesai
+            if ($jamSelesaiShift < $jamMulaiShift) {
+                $jamSelesaiShift += 86400; // Tambah 1 hari (86400 detik)
+            }
+    
+            // Menentukan batas lembur (misalnya 7 jam setelah jam selesai shift)
+            $batasLembur = $jamSelesaiShift + (7 * 3600);
+    
+            // Mengecek apakah user sudah absen masuk di hari berikutnya
+            $besokSudahAbsenMasuk = DB::selectOne("
+                SELECT id 
+                FROM absen_masuk 
+                WHERE user_id = :user_id 
+                AND waktu_masuk > :batas_lembur
+                LIMIT 1
+            ", [
+                'user_id' => $id,
+                'batas_lembur' => date('Y-m-d H:i:s', $batasLembur),
+            ]);
+    
+            // Menentukan status absen
+            if ($lastAbsen->absen_pulang_id) {
+                $status = 0; // Sudah absen pulang, artinya absen masuk berikutnya
+            } elseif ($besokSudahAbsenMasuk) {
+                $status = 0; // Sudah absen masuk di hari berikutnya
+            } else {
+                $status = 1; // Masih dalam jam kerja, harus absen pulang
+            }
+        }
+    
+        // Menambahkan status absen terakhir ke user
+        $user->lastAbsenStatus = [
+            'status' => $status,
+            'absen_masuk_id' => $status === 0 ? null : $lastAbsen->absen_masuk_id
+        ];
+    
+        return response()->json($user, 200);
     }
 }
